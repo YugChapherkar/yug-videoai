@@ -1,0 +1,9 @@
+import Home from "@/components/home";
+
+export default function HomePageStoryboard() {
+  return (
+    <div className="bg-white">
+      <Home />
+    </div>
+  );
+}
