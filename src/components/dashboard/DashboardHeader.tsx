@@ -18,7 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-import DarkModeToggle from "./DarkModeToggle";
+// DarkModeToggle removed
 
 interface DashboardHeaderProps {
   username?: string;
@@ -110,7 +110,7 @@ const DashboardHeader = ({
           <HelpCircle className="h-5 w-5" />
         </Button>
 
-        <DarkModeToggle />
+        {/* Dark mode toggle removed */}
 
         <Button variant="ghost" size="icon" className="hidden sm:flex">
           <Settings className="h-5 w-5" />

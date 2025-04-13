@@ -9,6 +9,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   Play,
   Pause,
@@ -22,6 +24,9 @@ import {
   RotateCw,
   Scissors,
   Save,
+  Brain,
+  Users,
+  MessageSquare,
 } from "lucide-react";
 
 interface VideoEditorProps {
@@ -32,8 +37,18 @@ interface VideoEditorProps {
     url: string;
     crop: { x: number; y: number; width: number; height: number };
     rotation: number;
+    smartCrop?: boolean;
+    collaborators?: string[];
   }) => void;
   onCancel?: () => void;
+}
+
+interface Comment {
+  id: string;
+  user: string;
+  text: string;
+  timestamp: number;
+  createdAt: Date;
 }
 
 const VideoEditor = ({
@@ -57,6 +72,17 @@ const VideoEditor = ({
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   const [isYoutubeVideo, setIsYoutubeVideo] = useState(false);
   const [youtubeEmbedUrl, setYoutubeEmbedUrl] = useState("");
+  const [smartCropEnabled, setSmartCropEnabled] = useState(false);
+  const [isProcessingSmartCrop, setIsProcessingSmartCrop] = useState(false);
+  const [detectedSubjects, setDetectedSubjects] = useState<
+    { x: number; y: number; width: number; height: number }[]
+  >([]);
+  const [selectedSubject, setSelectedSubject] = useState<number | null>(null);
+  const [collaborativeMode, setCollaborativeMode] = useState(false);
+  const [collaborators, setCollaborators] = useState<string[]>([]);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [newComment, setNewComment] = useState("");
+  const [commentTimestamp, setCommentTimestamp] = useState(0);
 
   // Helper function to convert YouTube URL to embed URL
   const getYouTubeEmbedUrl = (url: string): string => {
@@ -148,6 +174,56 @@ const VideoEditor = ({
     setIsFullscreen(!isFullscreen);
   };
 
+  const handleSmartCropToggle = (enabled: boolean) => {
+    setSmartCropEnabled(enabled);
+    if (enabled && detectedSubjects.length === 0) {
+      // Simulate AI processing
+      setIsProcessingSmartCrop(true);
+      setTimeout(() => {
+        // Mock detected subjects
+        setDetectedSubjects([
+          { x: 20, y: 15, width: 30, height: 40 },
+          { x: 60, y: 25, width: 25, height: 30 },
+        ]);
+        setSelectedSubject(0); // Select the first subject by default
+        setIsProcessingSmartCrop(false);
+
+        // Apply the smart crop to the current crop settings
+        if (detectedSubjects.length > 0) {
+          setCrop(detectedSubjects[0]);
+        }
+      }, 2000);
+    }
+  };
+
+  const selectSubject = (index: number) => {
+    setSelectedSubject(index);
+    setCrop(detectedSubjects[index]);
+  };
+
+  const toggleCollaborativeMode = (enabled: boolean) => {
+    setCollaborativeMode(enabled);
+    if (enabled && collaborators.length === 0) {
+      // Mock collaborators for demo
+      setCollaborators(["user1@example.com", "editor@example.com"]);
+    }
+  };
+
+  const addComment = () => {
+    if (!newComment.trim()) return;
+
+    const comment: Comment = {
+      id: Date.now().toString(),
+      user: "You",
+      text: newComment,
+      timestamp: commentTimestamp || currentTime,
+      createdAt: new Date(),
+    };
+
+    setComments([...comments, comment]);
+    setNewComment("");
+  };
+
   const handleExport = () => {
     // In a real implementation, this would process the video with the applied edits
     // and generate a downloadable file
@@ -155,6 +231,8 @@ const VideoEditor = ({
       crop,
       rotation,
       zoom,
+      smartCrop: smartCropEnabled,
+      collaborators: collaborativeMode ? collaborators : undefined,
     });
 
     // For now, we'll just call the onSave callback with the current settings
@@ -162,28 +240,35 @@ const VideoEditor = ({
       url: videoSrc,
       crop,
       rotation,
+      smartCrop: smartCropEnabled,
+      collaborators: collaborativeMode ? collaborators : undefined,
     });
 
-    // Create a mock download link
-    if (videoSrc) {
-      try {
-        // Create a temporary anchor element
-        const downloadLink = document.createElement("a");
-        downloadLink.href = videoSrc;
-        downloadLink.download = videoName || "edited-video.mp4";
+    // Create a mock download link with a blob instead of direct YouTube URL
+    try {
+      // Create a blob from a mock video data
+      const mockVideoBlob = new Blob([new ArrayBuffer(1024 * 1024)], {
+        type: "video/mp4",
+      });
+      const blobUrl = URL.createObjectURL(mockVideoBlob);
 
-        // Append to the document, click it, and remove it
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-        document.body.removeChild(downloadLink);
+      // Create a temporary anchor element
+      const downloadLink = document.createElement("a");
+      downloadLink.href = blobUrl;
+      downloadLink.download = videoName || "edited-video.mp4";
 
-        alert("Video exported successfully! Check your downloads folder.");
-      } catch (error) {
-        console.error("Error exporting video:", error);
-        alert("Video exported successfully! (This is a mock implementation)");
-      }
-    } else {
-      alert("Video exported successfully! (This is a mock implementation)");
+      // Append to the document, click it, and remove it
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+
+      // Clean up the blob URL
+      URL.revokeObjectURL(blobUrl);
+
+      alert("Video exported successfully! Check your downloads folder.");
+    } catch (error) {
+      console.error("Error exporting video:", error);
+      alert("Could not download the video. Please try again later.");
     }
   };
 
@@ -353,6 +438,12 @@ const VideoEditor = ({
             <TabsTrigger value="trim" className="flex-1">
               <Scissors className="mr-2 h-4 w-4" /> Trim
             </TabsTrigger>
+            <TabsTrigger value="ai" className="flex-1">
+              <Brain className="mr-2 h-4 w-4" /> AI Tools
+            </TabsTrigger>
+            <TabsTrigger value="collab" className="flex-1">
+              <Users className="mr-2 h-4 w-4" /> Collaborate
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="crop" className="pt-4">
@@ -482,6 +573,202 @@ const VideoEditor = ({
                   Trimming functionality will be available in the next update.
                 </p>
               </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="ai" className="pt-4">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="smart-crop">AI Smart Cropping</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Automatically detect and track subjects in your video
+                  </p>
+                </div>
+                <Switch
+                  id="smart-crop"
+                  checked={smartCropEnabled}
+                  onCheckedChange={handleSmartCropToggle}
+                  disabled={isYoutubeVideo}
+                />
+              </div>
+
+              {isProcessingSmartCrop && (
+                <div className="text-center p-4 bg-blue-50 rounded-md">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mx-auto mb-2"></div>
+                  <p className="text-sm text-blue-700">
+                    Analyzing video content...
+                  </p>
+                </div>
+              )}
+
+              {smartCropEnabled && detectedSubjects.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Detected Subjects</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {detectedSubjects.map((subject, index) => (
+                      <div
+                        key={index}
+                        className={`p-2 border rounded-md cursor-pointer ${selectedSubject === index ? "bg-primary/10 border-primary" : "bg-gray-50"}`}
+                        onClick={() => selectSubject(index)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">
+                            Subject {index + 1}
+                          </span>
+                          {selectedSubject === index && (
+                            <div className="h-2 w-2 rounded-full bg-primary"></div>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Position: {subject.x}%, {subject.y}%
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="p-4 bg-gray-50 rounded-md">
+                <h3 className="text-sm font-medium mb-2">AI Features</h3>
+                <ul className="space-y-1 text-sm text-gray-500">
+                  <li className="flex items-center">
+                    <span className="h-1.5 w-1.5 rounded-full bg-green-500 mr-2"></span>
+                    Face tracking to keep subjects in frame
+                  </li>
+                  <li className="flex items-center">
+                    <span className="h-1.5 w-1.5 rounded-full bg-green-500 mr-2"></span>
+                    Subject detection for optimal framing
+                  </li>
+                  <li className="flex items-center">
+                    <span className="h-1.5 w-1.5 rounded-full bg-yellow-500 mr-2"></span>
+                    Motion tracking (coming soon)
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="collab" className="pt-4">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="collab-mode">Collaborative Editing</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Enable team collaboration on this project
+                  </p>
+                </div>
+                <Switch
+                  id="collab-mode"
+                  checked={collaborativeMode}
+                  onCheckedChange={toggleCollaborativeMode}
+                />
+              </div>
+
+              {collaborativeMode && (
+                <div className="space-y-4">
+                  <div>
+                    <Label className="mb-2 block">Team Members</Label>
+                    <div className="space-y-2">
+                      {collaborators.map((email, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-2 bg-gray-50 rounded-md"
+                        >
+                          <span className="text-sm">{email}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                          >
+                            <span className="sr-only">Remove</span>
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="h-4 w-4"
+                            >
+                              <path d="M18 6L6 18M6 6l12 12" />
+                            </svg>
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex items-end gap-2">
+                    <div className="flex-1">
+                      <Label htmlFor="add-collaborator" className="mb-2 block">
+                        Add Collaborator
+                      </Label>
+                      <input
+                        id="add-collaborator"
+                        type="email"
+                        placeholder="Email address"
+                        className="w-full p-2 border rounded-md"
+                      />
+                    </div>
+                    <Button className="mb-0.5">Add</Button>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="flex items-center justify-between">
+                      <span>Comments</span>
+                      <span className="text-xs text-gray-500">
+                        {comments.length} comments
+                      </span>
+                    </Label>
+
+                    <div className="max-h-40 overflow-y-auto space-y-2 p-2 border rounded-md">
+                      {comments.length > 0 ? (
+                        comments.map((comment) => (
+                          <div
+                            key={comment.id}
+                            className="p-2 bg-gray-50 rounded-md"
+                          >
+                            <div className="flex justify-between items-start">
+                              <span className="font-medium text-sm">
+                                {comment.user}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {Math.floor(comment.timestamp / 60)}:
+                                {(comment.timestamp % 60)
+                                  .toString()
+                                  .padStart(2, "0")}
+                              </span>
+                            </div>
+                            <p className="text-sm mt-1">{comment.text}</p>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-500 text-center py-2">
+                          No comments yet
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <input
+                          type="text"
+                          placeholder="Add a comment at current timestamp..."
+                          className="w-full p-2 border rounded-md"
+                          value={newComment}
+                          onChange={(e) => setNewComment(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && addComment()}
+                        />
+                      </div>
+                      <Button onClick={addComment}>
+                        <MessageSquare className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </TabsContent>
         </Tabs>

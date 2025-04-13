@@ -294,7 +294,20 @@ const UploadSection = ({
 
   return (
     <div className="w-full bg-white p-6 rounded-lg shadow-sm">
-      <h2 className="text-2xl font-semibold mb-4">Upload Your Video</h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-semibold">Upload Your Video</h2>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() =>
+            document
+              .getElementById("help-guide")
+              ?.scrollIntoView({ behavior: "smooth" })
+          }
+        >
+          Need Help?
+        </Button>
+      </div>
 
       <Tabs defaultValue="upload" className="mb-6" onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-2">
@@ -464,8 +477,8 @@ const UploadSection = ({
               <Youtube className="h-12 w-12 text-red-500 mb-4" />
               <p className="text-lg font-medium mb-2">Import from YouTube</p>
               <p className="text-sm text-gray-500 mb-4 text-center">
-                Paste a YouTube video link to import and convert it into a short
-                clip
+                Paste a YouTube video link to import and convert it into
+                multiple short-form videos
               </p>
 
               <div className="w-full max-w-md mb-4">

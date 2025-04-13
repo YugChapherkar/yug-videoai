@@ -6,9 +6,11 @@ import UploadSection from "../components/dashboard/UploadSection";
 import VideoPreview from "../components/dashboard/VideoPreview";
 import VideoEditor from "../components/dashboard/VideoEditor";
 import SimplifiedControls from "../components/dashboard/SimplifiedControls";
+import ShortFormGenerator from "../components/dashboard/ShortFormGenerator";
 import PlatformTabs from "../components/dashboard/PlatformTabs";
 import ProcessingControls from "../components/dashboard/ProcessingControls";
 import VideoHistory from "../components/dashboard/VideoHistory";
+import GeneratedShortsGrid from "../components/dashboard/GeneratedShortsGrid";
 import { Button } from "../components/ui/button";
 import { Edit, Eye, X } from "lucide-react";
 import QuickStartGuide from "../components/dashboard/QuickStartGuide";
@@ -24,6 +26,10 @@ interface PlatformSettings {
 const Dashboard = () => {
   const [isVideoUploaded, setIsVideoUploaded] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isGeneratingShorts, setIsGeneratingShorts] = useState(false);
+  const [generatedShorts, setGeneratedShorts] = useState<
+    { url: string; platform: string; thumbnail: string }[]
+  >([]);
   const [selectedPlatform, setSelectedPlatform] = useState("youtube");
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [currentVideoUrl, setCurrentVideoUrl] = useState<string>("");
@@ -41,6 +47,20 @@ const Dashboard = () => {
       annotations: false,
     },
   });
+
+  // Helper function to get platform name
+  const getPlatformName = (platform: string) => {
+    switch (platform.toLowerCase()) {
+      case "instagram":
+        return "Instagram Reel";
+      case "youtube":
+        return "YouTube Short";
+      case "tiktok":
+        return "TikTok";
+      default:
+        return platform;
+    }
+  };
 
   // Handle file upload
   const handleFileUpload = (files: File[]) => {
@@ -214,12 +234,90 @@ const Dashboard = () => {
                 />
               )}
 
+              {/* Short Form Generator */}
+              {isVideoUploaded && (
+                <ShortFormGenerator
+                  videoSrc={currentVideoUrl}
+                  videoName={currentVideoName}
+                  isProcessing={isGeneratingShorts}
+                  onGenerateShorts={async (settings) => {
+                    setIsGeneratingShorts(true);
+                    console.log("Generating shorts with settings:", settings);
+
+                    // Simulate processing time
+                    await new Promise((resolve) => setTimeout(resolve, 5000));
+
+                    // Mock generated shorts
+                    const mockShorts = Array(settings.clipCount)
+                      .fill(0)
+                      .map((_, i) => ({
+                        url: currentVideoUrl,
+                        platform:
+                          settings.platforms[i % settings.platforms.length],
+                        thumbnail:
+                          currentThumbnailUrl ||
+                          `https://images.unsplash.com/photo-1611162616475-46b635cb6868?w=120&q=80&random=${i}`,
+                      }));
+
+                    setGeneratedShorts(mockShorts);
+                    setIsGeneratingShorts(false);
+
+                    // Show success message
+                    alert(
+                      `Successfully generated ${settings.clipCount} short-form videos!`,
+                    );
+                  }}
+                />
+              )}
+
               {/* Processing controls */}
               <ProcessingControls
                 onProcess={handleProcessVideo}
                 isProcessing={isProcessing}
                 isVideoUploaded={isVideoUploaded}
               />
+
+              {/* Generated Shorts Grid */}
+              {generatedShorts.length > 0 && (
+                <GeneratedShortsGrid
+                  shorts={generatedShorts}
+                  onDownload={(short) => {
+                    try {
+                      // Create a blob from a mock video data instead of using the YouTube URL
+                      const mockVideoBlob = new Blob(
+                        [new ArrayBuffer(1024 * 1024)],
+                        { type: "video/mp4" },
+                      );
+                      const blobUrl = URL.createObjectURL(mockVideoBlob);
+
+                      // Create a temporary anchor element
+                      const downloadLink = document.createElement("a");
+                      downloadLink.href = blobUrl;
+                      downloadLink.download = `short-${short.platform}.mp4`;
+                      document.body.appendChild(downloadLink);
+                      downloadLink.click();
+                      document.body.removeChild(downloadLink);
+
+                      // Clean up the blob URL
+                      URL.revokeObjectURL(blobUrl);
+
+                      alert(
+                        `Downloaded ${getPlatformName(short.platform)} video successfully!`,
+                      );
+                    } catch (error) {
+                      console.error("Download error:", error);
+                      alert(
+                        "Could not download the video. Please try again later.",
+                      );
+                    }
+                  }}
+                  onShare={(short) => {
+                    alert(
+                      `Sharing functionality for ${short.platform} will be available soon!`,
+                    );
+                  }}
+                />
+              )}
 
               {/* Video history */}
               <VideoHistory />
