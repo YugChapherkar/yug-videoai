@@ -76,11 +76,15 @@ const Dashboard = () => {
     thumbnailUrl: string,
     videoName: string,
   ) => {
+    console.log("Video selected for preview:", {
+      videoUrl,
+      thumbnailUrl,
+      videoName,
+    });
     setCurrentVideoUrl(videoUrl);
     setCurrentThumbnailUrl(thumbnailUrl);
     setCurrentVideoName(videoName);
     setIsVideoUploaded(true);
-    console.log("Video selected for preview:", videoUrl);
   };
 
   // Handle video processing

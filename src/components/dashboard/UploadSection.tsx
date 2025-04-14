@@ -10,11 +10,18 @@ import {
   Link as LinkIcon,
   ArrowRight,
   Settings,
+  Sparkles,
+  BarChart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import { uploadVideo, uploadYoutubeVideo, VideoData } from "@/lib/api";
+import {
+  uploadVideo,
+  uploadYoutubeVideo,
+  VideoData,
+  analyzeVideoEngagement,
+} from "@/lib/api";
 import {
   Tooltip,
   TooltipContent,
@@ -77,6 +84,11 @@ const UploadSection = ({
   const [activeTab, setActiveTab] = useState("upload");
   const [selectedQuality, setSelectedQuality] = useState("720p");
   const [downloadStatus, setDownloadStatus] = useState("");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisProgress, setAnalysisProgress] = useState(0);
+  const [engagementData, setEngagementData] = useState<
+    VideoData["engagementMetrics"] | null
+  >(null);
 
   // Reset success state when upload starts
   useEffect(() => {
@@ -157,18 +169,27 @@ const UploadSection = ({
         setUploadedVideo(result.data);
         // Call the parent component's callback
         onFileUpload(result.data);
+
         // Notify parent about the video URL
-        if (result.data.url) {
-          onVideoSelected(
-            result.data.url,
-            result.data.thumbnail || "",
-            result.data.name,
-          );
-        }
+        const videoUrl = result.data.url || "";
+        const thumbnailUrl = result.data.thumbnail || "";
+        const videoName = result.data.name || "Uploaded Video";
+        console.log("Notifying parent with video data:", {
+          videoUrl,
+          thumbnailUrl,
+          videoName,
+        });
+        onVideoSelected(videoUrl, thumbnailUrl, videoName);
+
         // Keep progress at 100% for a moment before resetting
         setTimeout(() => {
           setIsUploading(false);
         }, 1000);
+
+        // If we have a video ID, analyze it for engagement
+        if (result.data.id) {
+          handleAnalyzeEngagement(result.data.id);
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
@@ -211,6 +232,7 @@ const UploadSection = ({
     setUploadSuccess(false);
     setUploadedVideo(null);
     setError(null);
+    setEngagementData(null);
   };
 
   const validateYoutubeUrl = (url: string) => {
@@ -273,23 +295,136 @@ const UploadSection = ({
         setUploadedVideo(result.data);
         // Call the parent component's callback
         onFileUpload(result.data);
+
         // Notify parent about the video URL
-        if (result.data.url) {
-          onVideoSelected(
-            result.data.url,
-            result.data.thumbnail || "",
-            result.data.name,
-          );
-        }
+        const videoUrl = result.data.url || "";
+        const thumbnailUrl = result.data.thumbnail || "";
+        const videoName = result.data.name || "YouTube Video";
+        console.log("Notifying parent with YouTube video data:", {
+          videoUrl,
+          thumbnailUrl,
+          videoName,
+        });
+        onVideoSelected(videoUrl, thumbnailUrl, videoName);
+
         // Keep progress at 100% for a moment before resetting
         setTimeout(() => {
           setIsUploading(false);
         }, 1000);
+
+        // If we have a video ID, analyze it for engagement
+        if (result.data.id) {
+          handleAnalyzeEngagement(result.data.id);
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Download failed");
       setIsUploading(false);
     }
+  };
+
+  // Function to analyze video engagement
+  const handleAnalyzeEngagement = async (videoId: string) => {
+    setIsAnalyzing(true);
+    setAnalysisProgress(0);
+    setEngagementData(null);
+
+    try {
+      // Simulate progress updates
+      const progressInterval = setInterval(() => {
+        setAnalysisProgress((prev) => {
+          const newProgress = prev + Math.random() * 10;
+          return newProgress >= 100 ? 99 : newProgress;
+        });
+      }, 500);
+
+      // Call the API to analyze engagement
+      const result = await analyzeVideoEngagement(videoId, {
+        segmentLength: 5,
+        analysisDepth: "advanced",
+      });
+
+      clearInterval(progressInterval);
+
+      if (result.error) {
+        setError(`Analysis failed: ${result.error}`);
+        setIsAnalyzing(false);
+      } else if (result.data?.engagementMetrics) {
+        setAnalysisProgress(100);
+        setEngagementData(result.data.engagementMetrics);
+
+        // Keep 100% for a moment before completing
+        setTimeout(() => {
+          setIsAnalyzing(false);
+        }, 1000);
+      } else {
+        setError("No engagement data returned");
+        setIsAnalyzing(false);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Analysis failed");
+      setIsAnalyzing(false);
+    }
+  };
+
+  // Function to render engagement data
+  const renderEngagementData = () => {
+    if (!engagementData) return null;
+
+    return (
+      <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+        <div className="flex items-center mb-3">
+          <Sparkles className="h-5 w-5 text-blue-500 mr-2" />
+          <h3 className="text-md font-medium text-blue-700">
+            AI Engagement Analysis
+          </h3>
+        </div>
+
+        <div className="mb-3">
+          <div className="flex justify-between mb-1">
+            <span className="text-sm text-blue-700">
+              Overall Engagement Score
+            </span>
+            <span className="text-sm font-medium text-blue-700">
+              {Math.round(engagementData.overallScore * 100)}%
+            </span>
+          </div>
+          <div className="w-full bg-blue-200 rounded-full h-2.5">
+            <div
+              className="bg-blue-600 h-2.5 rounded-full"
+              style={{ width: `${engagementData.overallScore * 100}%` }}
+            ></div>
+          </div>
+        </div>
+
+        <div>
+          <p className="text-sm text-blue-700 mb-2">Most Engaging Segments:</p>
+          <div className="space-y-2">
+            {engagementData.engagingSegments.map((segment, index) => (
+              <div key={index} className="flex items-center justify-between">
+                <span className="text-xs text-blue-600">
+                  {Math.floor(segment.startTime / 60)}:
+                  {(segment.startTime % 60).toString().padStart(2, "0")} -
+                  {Math.floor(segment.endTime / 60)}:
+                  {(segment.endTime % 60).toString().padStart(2, "0")}
+                </span>
+                <div className="flex items-center">
+                  <div className="w-24 bg-blue-200 rounded-full h-1.5 mr-2">
+                    <div
+                      className="bg-blue-600 h-1.5 rounded-full"
+                      style={{ width: `${segment.score * 100}%` }}
+                    ></div>
+                  </div>
+                  <span className="text-xs text-blue-600">
+                    {Math.round(segment.score * 100)}%
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -362,9 +497,21 @@ const UploadSection = ({
                   Your video "{uploadedVideo.name}" has been uploaded and is
                   ready for processing.
                 </p>
-                <Button variant="outline" onClick={resetUpload}>
-                  Upload Another Video
-                </Button>
+                <div className="flex flex-col items-center">
+                  <Button
+                    variant="outline"
+                    onClick={resetUpload}
+                    className="mb-3"
+                  >
+                    Upload Another Video
+                  </Button>
+                  {engagementData && (
+                    <div className="text-sm text-green-600 flex items-center">
+                      <BarChart className="h-4 w-4 mr-1" />
+                      <span>AI analysis complete</span>
+                    </div>
+                  )}
+                </div>
               </>
             ) : isUploading ? (
               <div className="text-center">
@@ -400,6 +547,33 @@ const UploadSection = ({
               <p className="text-sm text-destructive">{error}</p>
             </div>
           )}
+
+          {/* AI Analysis in progress */}
+          {isAnalyzing && (
+            <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="flex items-center mb-3">
+                <Sparkles className="h-5 w-5 text-blue-500 mr-2 animate-pulse" />
+                <h3 className="text-md font-medium text-blue-700">
+                  AI Analyzing Video Content
+                </h3>
+              </div>
+              <p className="text-sm text-blue-600 mb-2">
+                Identifying engaging segments and content patterns...
+              </p>
+              <div className="w-full bg-blue-200 rounded-full h-2.5 mb-2">
+                <div
+                  className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                  style={{ width: `${analysisProgress}%` }}
+                ></div>
+              </div>
+              <p className="text-xs text-blue-500 text-right">
+                {Math.round(analysisProgress)}% complete
+              </p>
+            </div>
+          )}
+
+          {/* Engagement Analysis Results */}
+          {!isAnalyzing && engagementData && renderEngagementData()}
 
           {/* File information */}
           {files.length > 0 && !isUploading && !uploadSuccess && (
@@ -454,9 +628,21 @@ const UploadSection = ({
                 Your video "{uploadedVideo.name}" has been imported and is ready
                 for processing.
               </p>
-              <Button variant="outline" onClick={resetUpload}>
-                Import Another Video
-              </Button>
+              <div className="flex flex-col items-center">
+                <Button
+                  variant="outline"
+                  onClick={resetUpload}
+                  className="mb-3"
+                >
+                  Import Another Video
+                </Button>
+                {engagementData && (
+                  <div className="text-sm text-green-600 flex items-center">
+                    <BarChart className="h-4 w-4 mr-1" />
+                    <span>AI analysis complete</span>
+                  </div>
+                )}
+              </div>
             </div>
           ) : isUploading ? (
             <div className="border-2 border-dashed rounded-lg p-8 flex flex-col items-center justify-center">
@@ -534,6 +720,33 @@ const UploadSection = ({
               <p className="text-sm text-destructive">{error}</p>
             </div>
           )}
+
+          {/* AI Analysis in progress */}
+          {isAnalyzing && (
+            <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="flex items-center mb-3">
+                <Sparkles className="h-5 w-5 text-blue-500 mr-2 animate-pulse" />
+                <h3 className="text-md font-medium text-blue-700">
+                  AI Analyzing Video Content
+                </h3>
+              </div>
+              <p className="text-sm text-blue-600 mb-2">
+                Identifying engaging segments and content patterns...
+              </p>
+              <div className="w-full bg-blue-200 rounded-full h-2.5 mb-2">
+                <div
+                  className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                  style={{ width: `${analysisProgress}%` }}
+                ></div>
+              </div>
+              <p className="text-xs text-blue-500 text-right">
+                {Math.round(analysisProgress)}% complete
+              </p>
+            </div>
+          )}
+
+          {/* Engagement Analysis Results */}
+          {!isAnalyzing && engagementData && renderEngagementData()}
         </TabsContent>
       </Tabs>
     </div>

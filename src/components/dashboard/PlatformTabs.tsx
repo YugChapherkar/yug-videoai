@@ -26,6 +26,8 @@ export interface PlatformSettings {
   resolution: string;
   quality: number;
   autoCaption: boolean;
+  aiOptimization?: boolean;
+  optimizationPreset?: string;
   customSettings: Record<string, any>;
 }
 
@@ -35,6 +37,8 @@ const defaultSettings: Record<string, PlatformSettings> = {
     resolution: "1920x1080",
     quality: 80,
     autoCaption: false,
+    aiOptimization: true,
+    optimizationPreset: "engagement",
     customSettings: {
       endScreen: true,
       annotations: false,
@@ -45,6 +49,8 @@ const defaultSettings: Record<string, PlatformSettings> = {
     resolution: "1080x1080",
     quality: 70,
     autoCaption: true,
+    aiOptimization: true,
+    optimizationPreset: "aesthetic",
     customSettings: {
       filter: "normal",
       boomerang: false,
@@ -55,6 +61,8 @@ const defaultSettings: Record<string, PlatformSettings> = {
     resolution: "1080x1920",
     quality: 75,
     autoCaption: true,
+    aiOptimization: true,
+    optimizationPreset: "trending",
     customSettings: {
       addMusic: true,
       effects: "none",
@@ -80,6 +88,16 @@ const PlatformTabs: React.FC<PlatformTabsProps> = ({
 
   const handleCaptionToggle = (checked: boolean) => {
     const newSettings = { ...settings, autoCaption: checked };
+    onSettingsChange(newSettings);
+  };
+
+  const handleAIOptimizationToggle = (checked: boolean) => {
+    const newSettings = { ...settings, aiOptimization: checked };
+    onSettingsChange(newSettings);
+  };
+
+  const handleOptimizationPresetChange = (preset: string) => {
+    const newSettings = { ...settings, optimizationPreset: preset };
     onSettingsChange(newSettings);
   };
 
@@ -179,6 +197,53 @@ const PlatformTabs: React.FC<PlatformTabsProps> = ({
                 />
               </div>
 
+              <div className="flex items-center justify-between space-x-2">
+                <div className="flex items-center space-x-2">
+                  <Label htmlFor="ai-optimization" className="font-medium">
+                    AI Optimization:
+                  </Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-gray-400 cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Use AI to optimize content for YouTube algorithms</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <Switch
+                  id="ai-optimization"
+                  checked={settings.aiOptimization}
+                  onCheckedChange={handleAIOptimizationToggle}
+                />
+              </div>
+
+              {settings.aiOptimization && (
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="optimization-preset"
+                    className="text-sm font-medium"
+                  >
+                    Optimization Preset:
+                  </Label>
+                  <select
+                    id="optimization-preset"
+                    className="w-full rounded-md border border-gray-300 px-3 py-1 text-sm"
+                    value={settings.optimizationPreset}
+                    onChange={(e) =>
+                      handleOptimizationPresetChange(e.target.value)
+                    }
+                  >
+                    <option value="engagement">Maximize Engagement</option>
+                    <option value="retention">Viewer Retention</option>
+                    <option value="growth">Channel Growth</option>
+                    <option value="monetization">Monetization</option>
+                  </select>
+                </div>
+              )}
+
               <div className="pt-2">
                 <h4 className="text-sm font-medium mb-2">Advanced Settings</h4>
                 <div className="grid grid-cols-2 gap-2">
@@ -244,6 +309,55 @@ const PlatformTabs: React.FC<PlatformTabsProps> = ({
                   onCheckedChange={handleCaptionToggle}
                 />
               </div>
+
+              <div className="flex items-center justify-between space-x-2">
+                <div className="flex items-center space-x-2">
+                  <Label htmlFor="ai-optimization-ig" className="font-medium">
+                    AI Optimization:
+                  </Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-gray-400 cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>
+                          Use AI to optimize content for Instagram's algorithm
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <Switch
+                  id="ai-optimization-ig"
+                  checked={settings.aiOptimization}
+                  onCheckedChange={handleAIOptimizationToggle}
+                />
+              </div>
+
+              {settings.aiOptimization && (
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="optimization-preset-ig"
+                    className="text-sm font-medium"
+                  >
+                    Optimization Preset:
+                  </Label>
+                  <select
+                    id="optimization-preset-ig"
+                    className="w-full rounded-md border border-gray-300 px-3 py-1 text-sm"
+                    value={settings.optimizationPreset}
+                    onChange={(e) =>
+                      handleOptimizationPresetChange(e.target.value)
+                    }
+                  >
+                    <option value="aesthetic">Aesthetic Feed</option>
+                    <option value="engagement">Engagement Boost</option>
+                    <option value="discovery">Discovery Optimization</option>
+                    <option value="shopping">Shopping Conversion</option>
+                  </select>
+                </div>
+              )}
 
               <div className="pt-2">
                 <h4 className="text-sm font-medium mb-2">Instagram Options</h4>
@@ -317,6 +431,56 @@ const PlatformTabs: React.FC<PlatformTabsProps> = ({
                   onCheckedChange={handleCaptionToggle}
                 />
               </div>
+
+              <div className="flex items-center justify-between space-x-2">
+                <div className="flex items-center space-x-2">
+                  <Label htmlFor="ai-optimization-tt" className="font-medium">
+                    AI Optimization:
+                  </Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-gray-400 cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>
+                          Use AI to optimize content for TikTok's For You Page
+                          algorithm
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <Switch
+                  id="ai-optimization-tt"
+                  checked={settings.aiOptimization}
+                  onCheckedChange={handleAIOptimizationToggle}
+                />
+              </div>
+
+              {settings.aiOptimization && (
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="optimization-preset-tt"
+                    className="text-sm font-medium"
+                  >
+                    Optimization Preset:
+                  </Label>
+                  <select
+                    id="optimization-preset-tt"
+                    className="w-full rounded-md border border-gray-300 px-3 py-1 text-sm"
+                    value={settings.optimizationPreset}
+                    onChange={(e) =>
+                      handleOptimizationPresetChange(e.target.value)
+                    }
+                  >
+                    <option value="trending">Trending Topics</option>
+                    <option value="viral">Viral Potential</option>
+                    <option value="fyp">FYP Algorithm</option>
+                    <option value="niche">Niche Community</option>
+                  </select>
+                </div>
+              )}
 
               <div className="pt-2">
                 <h4 className="text-sm font-medium mb-2">TikTok Options</h4>

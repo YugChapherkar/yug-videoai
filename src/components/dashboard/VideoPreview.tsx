@@ -37,6 +37,7 @@ const VideoPreview = ({
   onFormatChange = () => {},
   onResolutionChange = () => {},
 }: VideoPreviewProps) => {
+  console.log("VideoPreview received videoSrc:", videoSrc);
   // Helper function to convert YouTube URL to embed URL
   const getYouTubeEmbedUrl = (url: string): string => {
     try {
